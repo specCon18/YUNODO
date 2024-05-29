@@ -40,6 +40,7 @@ fn main() {
     let cli = Cli::parse();
     if let Some(path) = cli.path.as_deref() {
         let path_string = path.display().to_string();
+        let mut output_csv_item: String = String::new();
         match read_files_in_directory(&path_string.as_str()) {
             Ok(files_content) => {
                 for (filename, lines) in files_content {
@@ -77,7 +78,11 @@ fn main() {
                             if let Some(last_part) = v.last() {
                                 if let Some(end_index) = last_part.find(":ODOT//") {
                                     let extracted = &last_part[..end_index];
-                                    println!("({})->({})->({}) |~| {}", path_string, filename, line_number + 1, extracted);
+                                    if !output_csv_item.is_empty(){
+                                        output_csv_item = format!("{},path:\"{}\",file_name:\"{}\",line_number:\"{}\",comment:\"{}\"", output_csv_item, path_string, filename, line_number + 1, extracted);
+                                    } else {
+                                        output_csv_item = format!("path:\"{}\",file_name:\"{}\",line_number:\"{}\",comment:\"{}\"",path_string, filename, line_number + 1, extracted);
+                                    }
                                 }
                             }
                         }
@@ -88,5 +93,6 @@ fn main() {
                 eprintln!("Error: {}", err);
             }
         }
+        println!("{}",output_csv_item)
     }
 }
