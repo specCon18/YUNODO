@@ -3,7 +3,7 @@ use std::{io, fs, path::PathBuf};
 //TODO: implement mod file_tree :ODOT//
 #[derive(Parser)]
 #[command(name = "YUNODO")]
-#[command(version = "0.3.0")]
+#[command(version = "0.4.0")]
 #[command(about = "parse file tree for //TODO: comments", long_about = "parses a directory of files for substrings of //TODO: and outputs all instances in a parsable format")]
 struct Cli {
     /// Sets a custom config file
@@ -78,7 +78,8 @@ fn main() {
                 eprintln!("Error: {}", err);
             }
         }
-        out_as_md_table(output_csv_item);
+        // out_as_md_table(output_csv_item);
+        out_as_json_object(output_csv_item);
     }
 }
 
@@ -131,6 +132,18 @@ fn out_as_md_table(input_csv:String){
         println!("{}",line);
     }
 }
+fn split_csv_rows(vec: &mut Vec<&str>) -> Vec<String> {
+    let mut rows: Vec<String> = Vec::new();
+    if !vec.is_empty() {
+        let mut vec2 = vec.split_off(4);
+        let row = vec.join(",");
+        rows.push(row);
+        let mut remaining_rows = split_csv_rows(&mut vec2);
+        rows.append(&mut remaining_rows);
+    }
+    rows
+}
+
 fn split_and_print(vec: &mut Vec<&str>,table: &mut Vec<String>) {
     if vec.is_empty() {
         return;
@@ -145,4 +158,34 @@ fn split_and_print(vec: &mut Vec<&str>,table: &mut Vec<String>) {
     let formatted_row = format!("{} {} {} {} {} {} {} {} {}",spacer,path.unwrap(),spacer,name.unwrap(),spacer,line.unwrap(),spacer,comment.unwrap(),spacer);
     table.push(formatted_row);
     split_and_print(&mut vec2, table);
+}
+fn out_as_json_object(input_csv:String){
+    let object_open_char = "{".to_string();    
+    let object_close_char = "}".to_string();
+    let depth_counter = 0;
+    
+    let mut split_input: Vec<&str> = input_csv.split(',').collect();
+    let rows:Vec<String> = split_csv_rows(&mut split_input);
+    
+    let mut output:Vec<String> = Vec::new();
+    output.push(object_open_char);
+    for row in rows {
+        let mut cols: Vec<_> = row.split(',').collect();
+        let obj_open = "    {";
+        let obj_close = "    },";
+        let comment = format!("        \"todo_comment\":\"{}\",", cols.pop().unwrap());
+        let line_number = format!("        \"line_number\":\"{}\",", cols.pop().unwrap());
+        let file_name = format!("        \"file_name\":\"{}\",", cols.pop().unwrap());
+        let file_path = format!("        \"file_path\":\"{}\",", cols.pop().unwrap());
+        output.push(obj_open.to_string());
+        output.push(file_path.clone());
+        output.push(file_name.clone());
+        output.push(line_number.clone());
+        output.push(comment.clone());
+        output.push(obj_close.to_string());
+    }
+    output.push(object_close_char);
+    for line in output {
+        println!("{}",line)
+    }
 }
