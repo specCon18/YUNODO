@@ -1,9 +1,9 @@
 use clap::Parser;
-use std::{io, fs, path::PathBuf};
+use std::{io, fs, path::PathBuf,collections::HashMap};
 //TODO: implement mod file_tree :ODOT//
 #[derive(Parser)]
 #[command(name = "YUNODO")]
-#[command(version = "0.4.0")]
+#[command(version = "0.5.0")]
 #[command(about = "parse file tree for //TODO: comments", long_about = "parses a directory of files for substrings of //TODO: and outputs all instances in a parsable format")]
 struct Cli {
     /// Sets a custom config file
@@ -78,8 +78,9 @@ fn main() {
                 eprintln!("Error: {}", err);
             }
         }
-        // out_as_md_table(output_csv_item);
-        out_as_json_object(output_csv_item);
+        out_as_md_table(output_csv_item.clone());
+        out_as_json_object(output_csv_item.clone());
+        out_as_toml_file(output_csv_item.clone());
     }
 }
 
@@ -132,13 +133,13 @@ fn out_as_md_table(input_csv:String){
         println!("{}",line);
     }
 }
-fn split_csv_rows(vec: &mut Vec<&str>) -> Vec<String> {
+fn split_csv(vec: &mut Vec<&str>,split:usize) -> Vec<String> {
     let mut rows: Vec<String> = Vec::new();
     if !vec.is_empty() {
-        let mut vec2 = vec.split_off(4);
+        let mut vec2 = vec.split_off(split);
         let row = vec.join(",");
         rows.push(row);
-        let mut remaining_rows = split_csv_rows(&mut vec2);
+        let mut remaining_rows = split_csv(&mut vec2,split);
         rows.append(&mut remaining_rows);
     }
     rows
@@ -165,7 +166,7 @@ fn out_as_json_object(input_csv:String){
     let depth_counter = 0;
     
     let mut split_input: Vec<&str> = input_csv.split(',').collect();
-    let rows:Vec<String> = split_csv_rows(&mut split_input);
+    let rows:Vec<String> = split_csv(&mut split_input,4);
     
     let mut output:Vec<String> = Vec::new();
     output.push(object_open_char);
@@ -188,4 +189,44 @@ fn out_as_json_object(input_csv:String){
     for line in output {
         println!("{}",line)
     }
+}
+fn out_as_toml_file(input_csv: String) {
+    // Split input CSV into rows
+    let mut split_input: Vec<&str> = input_csv.split(',').collect();
+
+    // Remove any empty elements
+    split_input.retain(|&x| x.trim() != "");
+
+    // Define data structures to store todos and headers
+    let mut todos: HashMap<String, Vec<(String, String)>> = HashMap::new();
+
+    // Parse each row of the CSV
+    while !split_input.is_empty() {
+        let path = split_input.remove(0).trim().to_string();
+        let file = split_input.remove(0).trim().to_string();
+        let line = split_input.remove(0).trim().to_string();
+        let comment = split_input.remove(0).trim().to_string();
+        let header = format!("{}{}", path, file);
+
+        // Store todo item under the header
+        todos.entry(header.clone()).or_insert(Vec::new()).push((line.clone(), comment.clone()));
+    }
+
+    // Write todos to TOML file
+    let mut toml_output = String::new();
+    for (header, todo_list) in todos {
+        // Write header
+        toml_output.push_str(&format!("[{}]\n", header));
+
+        // Write todo items under this header
+        for (i, (line, comment)) in todo_list.clone().into_iter().enumerate() {
+            toml_output.push_str(&format!("[[todo]]\n"));
+            toml_output.push_str(&format!("line = {}\n", line));
+            toml_output.push_str(&format!("comment = \"{}\"\n", comment));
+            if i < todo_list.len() - 1 {
+                toml_output.push_str("\n"); // Separate todo items with a newline
+            }
+        }
+    }
+    println!("{}", toml_output);
 }
