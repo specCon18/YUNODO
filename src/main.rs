@@ -6,13 +6,13 @@ use std::{io, fs, path::PathBuf,collections::HashMap};
 #[command(version = "0.5.0")]
 #[command(about = "parse file tree for //TODO: comments", long_about = "parses a directory of files for substrings of //TODO: and outputs all instances in a parsable format")]
 struct Cli {
-    /// Sets a custom config file
     #[arg(short, long, value_name = "PATH")]
     path: Option<PathBuf>,
-    #[arg(short, long, value_name = "DEBUG")]
+    #[arg(short, long, value_name = "FORMAT")]
+    format: Option<String>,
+    #[arg(short, long)]
     debug: Option<bool>,
 }
-
 fn main() {
     let cli = Cli::parse();
     if let Some(path) = cli.path.as_deref() {
@@ -78,10 +78,16 @@ fn main() {
                 eprintln!("Error: {}", err);
             }
         }
-        out_as_md_table(output_csv_item.clone());
-        out_as_json_object(output_csv_item.clone());
-        out_as_toml_file(output_csv_item.clone());
-        out_as_yaml_file(output_csv_item.clone());
+        if let Some(format) = cli.format.as_deref() {
+            //TODO: write match to match format and select which output :ODOT//
+            match format {
+                "md"|"MD" => out_as_md_table(output_csv_item.clone()),
+                "json"|"JSON" => out_as_json_object(output_csv_item.clone()),
+                "yaml"|"YAML" => out_as_yaml_file(output_csv_item.clone()),
+                "toml"|"TOML" => out_as_toml_file(output_csv_item.clone()),
+                _ => println!("That's not a supported format")
+            }
+        }
     }
 }
 
