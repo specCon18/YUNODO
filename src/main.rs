@@ -81,6 +81,7 @@ fn main() {
         out_as_md_table(output_csv_item.clone());
         out_as_json_object(output_csv_item.clone());
         out_as_toml_file(output_csv_item.clone());
+        out_as_yaml_file(output_csv_item.clone());
     }
 }
 
@@ -229,4 +230,43 @@ fn out_as_toml_file(input_csv: String) {
         }
     }
     println!("{}", toml_output);
+}
+fn out_as_yaml_file(input_csv: String) {
+    // Split input CSV into rows
+    let mut split_input: Vec<&str> = input_csv.split(',').collect();
+
+    // Remove any empty elements
+    split_input.retain(|&x| x.trim() != "");
+
+    // Define data structures to store todos and headers
+    let mut todos: HashMap<String, Vec<(String, String)>> = HashMap::new();
+
+    // Parse each row of the CSV
+    while !split_input.is_empty() {
+        let path = split_input.remove(0).trim().to_string();
+        let file = split_input.remove(0).trim().to_string();
+        let line = split_input.remove(0).trim().to_string();
+        let comment = split_input.remove(0).trim().to_string();
+        let header = format!("{}{}", path, file);
+
+        // Store todo item under the header
+        todos.entry(header.clone()).or_insert(Vec::new()).push((line.clone(), comment.clone()));
+    }
+
+    // Write todos to YAML file
+    let mut yaml_output = String::new();
+    for (header, todo_list) in todos {
+        // Write header
+        yaml_output.push_str(&format!("\"{}\":\n", header));
+
+        // Write todo items under this header
+        for (line, comment) in todo_list {
+            yaml_output.push_str("    \"item\":\n");
+            yaml_output.push_str(&format!("        \"line_number\": \"{}\"\n", line));
+            yaml_output.push_str(&format!("        \"comment\": \"{}\"\n", comment));
+        }
+    }
+
+    // Print YAML output to terminal
+    println!("{}", yaml_output);
 }
