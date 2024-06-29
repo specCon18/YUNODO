@@ -1,8 +1,8 @@
 { pkgs ? import <nixpkgs> { }, lib }:
 
 pkgs.rustPlatform.buildRustPackage rec {
-  pname = "algos-in-rust";
-  version = "1.0.0";
+  pname = "yunodo";
+  version = "0.7.0";
   cargoLock.lockFile = ../Cargo.lock;
   src = pkgs.lib.cleanSource ../.;
   buildInputs = [ ];
